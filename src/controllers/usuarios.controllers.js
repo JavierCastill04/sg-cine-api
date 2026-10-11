@@ -1,7 +1,7 @@
 
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { pool } from '../database.js';
+import { pool } from '../config.js';
 
 const validarRegistro = ({ nombre, correo, clave }) => {
     const errores = {};
