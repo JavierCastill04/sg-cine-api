@@ -321,7 +321,8 @@ export const getAsientosFuncion = async (req, res) => {
             `SELECT ra.asiento
        FROM reserva_asientos ra
        JOIN reservas r ON r.id = ra.reserva_id
-       WHERE ra.funcion_id = ? AND r.estado = 'activa'`,
+       WHERE ra.funcion_id = ?
+       AND r.estado IN ('activa', 'utilizada')`,
             [id]
         );
 
