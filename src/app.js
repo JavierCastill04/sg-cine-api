@@ -6,6 +6,7 @@ import funcionesRoutes from './routes/funciones.routes.js';
 import reservasRoutes from './routes/reservas.routes.js';
 import dispositivosRoutes from './routes/dispositivos.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
+import notificacionesRoutes from './routes/notificaciones.routes.js';
 
 const app = express()
 
@@ -19,6 +20,7 @@ app.use('/funciones', funcionesRoutes);
 app.use('/reservas', reservasRoutes);
 app.use('/dispositivos', dispositivosRoutes);
 app.use('/dashboard', dashboardRoutes);
+app.use('/notificaciones', notificacionesRoutes);
 
 app.use((req, res) => {
     res.status(404).json({

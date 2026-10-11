@@ -1,4 +1,5 @@
 import { pool } from '../config.js';
+import { enviarPush } from '../services/push.service.js';
 
 const obtenerId = (valor) =>
     Number.isInteger(Number(valor)) && Number(valor) > 0
@@ -29,6 +30,62 @@ const obtenerFuncion = async (id) => {
     );
 
     return funciones[0];
+};
+
+const notificarReservasFuncion = async (
+    funcionId,
+    tipo,
+    titulo,
+    mensaje
+) => {
+    const [destinatarios] = await pool.query(
+        `SELECT r.codigo AS reservaCodigo,
+                d.expo_push_token AS token
+         FROM reservas r
+         INNER JOIN dispositivos d
+             ON d.usuario_id = r.usuario_id
+         WHERE r.funcion_id = ?
+           AND r.estado = 'activa'`,
+        [funcionId]
+    );
+
+    const reservas = new Map();
+
+    for (const destinatario of destinatarios) {
+        const { reservaCodigo, token } = destinatario;
+
+        if (!reservas.has(reservaCodigo)) {
+            reservas.set(reservaCodigo, new Set());
+        }
+
+        reservas.get(reservaCodigo).add(token);
+    }
+
+    let aceptadasPorExpo = 0;
+    let fallidas = 0;
+
+    for (const [reservaCodigo, tokensSet] of reservas) {
+        const tokens = [...tokensSet];
+
+        const resultado = await enviarPush(
+            tokens,
+            titulo,
+            mensaje,
+            {
+                tipo,
+                reservaCodigo,
+            }
+        );
+
+        aceptadasPorExpo += resultado.aceptadasPorExpo;
+        fallidas += resultado.fallidas;
+    }
+
+    return {
+        reservasNotificadas: reservas.size,
+        aceptadasPorExpo,
+        fallidas,
+    };
 };
 
 const validarReferencias = async (peliculaId, salaId) => {
@@ -190,6 +247,7 @@ export const postFuncion = async (req, res) => {
 };
 
 // PUT /funciones/:id
+
 export const putFuncion = async (req, res) => {
     try {
         const id = obtenerId(req.params.id);
@@ -223,21 +281,48 @@ export const putFuncion = async (req, res) => {
         );
 
         if (errorReferencia) {
-            return res.status(400).json({ message: errorReferencia });
+            return res.status(400).json({
+                message: errorReferencia,
+            });
         }
+
+        const [fechasActuales] = await pool.query(
+            `SELECT DATE_FORMAT(fecha_hora, '%Y-%m-%d %H:%i:%s') AS fechaHora FROM funciones WHERE id = ?`, [id]
+        );
+
+        const reprogramada = fechasActuales[0].fechaHora !== fechaHora;
 
         await pool.query(
             `UPDATE funciones
-       SET pelicula_id = ?, sala_id = ?, fecha_hora = ?
-       WHERE id = ?`,
+             SET pelicula_id = ?, sala_id = ?, fecha_hora = ?
+             WHERE id = ?`,
             [peliculaId, salaId, fechaHora, id]
         );
 
         const funcion = await obtenerFuncion(id);
 
+        let notificaciones = null;
+
+        if (reprogramada) {
+            try {
+                notificaciones = await notificarReservasFuncion(
+                    id,
+                    'FUNCION_REPROGRAMADA',
+                    'Función reprogramada',
+                    `La función de tu reserva ${actual.pelicula} ha cambiado de fecha u horario.`
+                );
+            } catch (error) {
+                console.error(
+                    'La función se reprogramó, pero falló el envío de notificaciones:',
+                    error
+                );
+            }
+        }
+
         return res.status(200).json({
             message: 'Función actualizada correctamente',
             funcion,
+            ...(reprogramada && { notificaciones }),
         });
     } catch (error) {
         if (error.code === 'ER_DUP_ENTRY') {
@@ -259,7 +344,9 @@ export const cancelarFuncion = async (req, res) => {
         const id = obtenerId(req.params.id);
 
         if (!id) {
-            return res.status(400).json({ message: 'ID no válido' });
+            return res.status(400).json({
+                message: 'ID no válido',
+            });
         }
 
         const funcion = await obtenerFuncion(id);
@@ -277,17 +364,37 @@ export const cancelarFuncion = async (req, res) => {
         }
 
         await pool.query(
-            `UPDATE funciones SET estado = 'cancelada' WHERE id = ?`,
+            `UPDATE funciones
+             SET estado = 'cancelada'
+             WHERE id = ?`,
             [id]
         );
+
+        let notificaciones = null;
+
+        try {
+            notificaciones = await notificarReservasFuncion(
+                id,
+                'FUNCION_CANCELADA',
+                'Función cancelada',
+                `La función de tu reserva ${funcion.pelicula} ha sido cancelada.`
+            );
+        } catch (error) {
+            console.error(
+                'La función se canceló, pero falló el envío de notificaciones:',
+                error
+            );
+        }
 
         return res.status(200).json({
             message: 'Función cancelada correctamente',
             id,
             estado: 'cancelada',
+            notificaciones,
         });
     } catch (error) {
         console.error('Error al cancelar función:', error);
+
         return res.status(500).json({
             message: 'Error interno del servidor',
         });

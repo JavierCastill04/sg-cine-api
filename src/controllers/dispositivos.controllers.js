@@ -12,7 +12,7 @@ export const registrarDispositivo = async (req, res) => {
             usuarioId <= 0 ||
             typeof expoPushToken !== 'string' ||
             !expoPushToken.trim() ||
-            expoPushToken.length > 255
+            expoPushToken.trim().length > 255
         ) {
             return res.status(400).json({
                 message: 'El token de Expo Push no es válido',
@@ -47,8 +47,9 @@ export const eliminarDispositivo = async (req, res) => {
         if (
             !Number.isInteger(usuarioId) ||
             usuarioId <= 0 ||
-            !expoPushToken ||
-            expoPushToken.length > 255
+            typeof expoPushToken !== 'string' ||
+            !expoPushToken.trim() ||
+            expoPushToken.trim().length > 255
         ) {
             return res.status(400).json({
                 message: 'El token no es válido',
@@ -58,7 +59,7 @@ export const eliminarDispositivo = async (req, res) => {
         const [resultado] = await pool.query(
             `DELETE FROM dispositivos
        WHERE usuario_id = ? AND expo_push_token = ?`,
-            [usuarioId, expoPushToken]
+            [usuarioId, expoPushToken.trim()]
         );
 
         if (resultado.affectedRows === 0) {
