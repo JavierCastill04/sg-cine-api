@@ -1,4 +1,3 @@
-
 import { pool } from '../config.js';
 
 // POST /dispositivos
@@ -9,11 +8,6 @@ export const registrarDispositivo = async (req, res) => {
             req.body.exponentPushToken ??
             req.body.expoPushToken ??
             req.body.expo_push_token;
-
-        console.log('Body recibido:', req.body);
-        console.log('Usuario autenticado:', req.usuario?.id);
-        console.log('Tipo del token:', typeof expoPushToken);
-        console.log('Longitud del token:', expoPushToken?.length);
 
         if (
             !Number.isInteger(usuarioId) ||
