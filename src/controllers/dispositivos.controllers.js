@@ -5,7 +5,8 @@ import { pool } from '../config.js';
 export const registrarDispositivo = async (req, res) => {
     try {
         const usuarioId = Number(req.usuario?.id);
-        const expoPushToken = req.body.expoPushToken;
+        const expoPushToken =
+            req.body.exponentPushToken ?? req.body.expoPushToken;
 
         if (
             !Number.isInteger(usuarioId) ||
@@ -21,8 +22,8 @@ export const registrarDispositivo = async (req, res) => {
 
         await pool.query(
             `INSERT INTO dispositivos (usuario_id, expo_push_token)
-       VALUES (?, ?)
-       ON DUPLICATE KEY UPDATE usuario_id = ?`,
+             VALUES (?, ?)
+             ON DUPLICATE KEY UPDATE usuario_id = ?`,
             [usuarioId, expoPushToken.trim(), usuarioId]
         );
 
@@ -42,7 +43,7 @@ export const registrarDispositivo = async (req, res) => {
 export const eliminarDispositivo = async (req, res) => {
     try {
         const usuarioId = Number(req.usuario?.id);
-        const expoPushToken = req.params.token;
+        const expoPushToken = req.params.exponentPushToken ?? req.params.token;
 
         if (
             !Number.isInteger(usuarioId) ||
@@ -58,7 +59,7 @@ export const eliminarDispositivo = async (req, res) => {
 
         const [resultado] = await pool.query(
             `DELETE FROM dispositivos
-       WHERE usuario_id = ? AND expo_push_token = ?`,
+            WHERE usuario_id = ? AND expo_push_token = ?`,
             [usuarioId, expoPushToken.trim()]
         );
 
