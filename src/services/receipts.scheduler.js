@@ -1,6 +1,6 @@
 import { consultarRecibos } from './receipts.service.js';
 
-const INTERVALO = 1 * 60 * 1000;
+const INTERVALO = 120 * 60 * 1000;
 
 let ejecutando = false;
 
