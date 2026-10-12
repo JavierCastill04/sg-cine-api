@@ -1,12 +1,8 @@
-
 import { pool } from '../config.js';
 
-const EXPO_RECEIPTS_URL =
-    'https://exp.host/--/api/v2/push/getReceipts';
+const EXPO_RECEIPTS_URL =  'https://exp.host/--/api/v2/push/getReceipts';
 
 export async function consultarRecibos() {
-    // Los recibos pueden tardar en estar disponibles.
-    // Los tickets de más de 24 horas ya no se seguirán consultando.
     await pool.query(
         `UPDATE notificacion_tickets
          SET estado = 'expirado',
@@ -118,8 +114,6 @@ export async function consultarRecibos() {
                 codigoError
             );
         }
-        // Si Expo aún no devuelve un recibo para un ticket,
-        // permanece pendiente para el siguiente ciclo.
     }
 
     let tokensEliminados = 0;
