@@ -8,6 +8,11 @@ export const registrarDispositivo = async (req, res) => {
         const expoPushToken =
             req.body.exponentPushToken ?? req.body.expoPushToken;
 
+        console.log('Body recibido:', req.body);
+        console.log('Usuario autenticado:', req.usuario?.id);
+        console.log('Tipo del token:', typeof expoPushToken);
+        console.log('Longitud del token:', expoPushToken?.length);
+        
         if (
             !Number.isInteger(usuarioId) ||
             usuarioId <= 0 ||
